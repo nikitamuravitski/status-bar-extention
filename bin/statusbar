@@ -13,7 +13,7 @@ PIPE="/tmp/statusbar_control"
 APP_NAME="statusbar"
 
 is_running() {
-  pgrep -x "$APP_NAME" > /dev/null 2>&1
+  pgrep "$APP_NAME" > /dev/null 2>&1
 }
 
 start_app() {
