@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Build output
+bin/statusbar
+
+# Logs
+*.log
+
+# Xcode
+*.xcworkspace
+*.xcodeproj
+
+# Homebrew formula cache
+*.bottle.* 
