@@ -24,9 +24,22 @@ func colorFromHex(_ hex: String) -> NSColor {
 class StatusBarController: NSObject, NSMenuDelegate {
     var statusItem: NSStatusItem?
     var menu: NSMenu?
+    var isActive: Bool = false // Track highlight state
+    // Store last shown text and color for redraws
+    private var lastText: String = ""
+    private var lastColor: NSColor = .systemBlue
+    
+    // Configurable appearance constants
+    private let font = NSFont.systemFont(ofSize: 12, weight: .bold)
+    private let margin: CGFloat = 2
+    private let maxHeight: CGFloat = 21
+    private let extraHorizontalPadding: CGFloat = 6
+    private let cornerRadius: CGFloat = 3
+    private let horizontalTextPadding: CGFloat = 8
     
     func show(text: String, color: NSColor) {
-        print("StatusBarController.show called with text: \(text), color: \(color)")
+        lastText = text
+        lastColor = color
         if statusItem == nil {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             menu = NSMenu()
@@ -34,34 +47,70 @@ class StatusBarController: NSObject, NSMenuDelegate {
             quitItem.target = self
             menu?.addItem(quitItem)
             menu?.delegate = self
-            // Do NOT set statusItem?.menu = menu
         }
-        guard let button = statusItem?.button else { return }
-        // Set styled attributed title
+        updateButton()
+    }
+    
+    // Calculate all relevant sizes for the button, colored rect, and text
+    private func calculateLayout(for text: String) -> (buttonSize: NSSize, colorRect: NSRect, textRect: NSRect, textAttr: NSAttributedString) {
         let style = NSMutableParagraphStyle()
         style.alignment = .center
         let attrTitle = NSAttributedString(
             string: text,
             attributes: [
-                .foregroundColor: color,
-                .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+                .font: font,
                 .paragraphStyle: style
             ]
         )
-        button.attributedTitle = attrTitle
-        // Style the button's layer
+        let textSize = attrTitle.size()
+        let colorWidth = textSize.width + 2 * horizontalTextPadding
+        let colorHeight = maxHeight - 2 * margin
+        let buttonWidth = colorWidth + margin * 2 + extraHorizontalPadding * 2
+        let buttonHeight = maxHeight
+        let buttonSize = NSSize(width: buttonWidth, height: buttonHeight)
+        let colorRect = NSRect(x: margin + extraHorizontalPadding, y: margin, width: colorWidth, height: colorHeight)
+        let textRect = NSRect(
+            x: colorRect.origin.x + horizontalTextPadding,
+            y: colorRect.origin.y + (colorHeight - textSize.height) / 2,
+            width: textSize.width,
+            height: textSize.height
+        )
+        return (buttonSize, colorRect, textRect, attrTitle)
+    }
+    
+    // Draw the button image with knockout text and highlight state
+    private func drawButtonImage(text: String, color: NSColor, isActive: Bool) -> NSImage {
+        let (buttonSize, colorRect, textRect, attrTitle) = calculateLayout(for: text)
+        let image = NSImage(size: buttonSize)
+        image.lockFocus()
+        // Highlighted background if active
+        let bgColor: NSColor = isActive ? color.highlight(withLevel: 0.2) ?? color : color
+        bgColor.setFill()
+        NSBezierPath(roundedRect: colorRect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+        // Draw text as transparent (knockout)
+        NSGraphicsContext.current?.cgContext.saveGState()
+        NSGraphicsContext.current?.cgContext.setBlendMode(.destinationOut)
+        attrTitle.draw(in: textRect)
+        NSGraphicsContext.current?.cgContext.restoreGState()
+        image.unlockFocus()
+        return image
+    }
+    
+    // Update the button's appearance
+    private func updateButton() {
+        guard let button = statusItem?.button else { return }
+        let image = drawButtonImage(text: lastText, color: lastColor, isActive: isActive)
+        let (buttonSize, _, _, _) = calculateLayout(for: lastText)
+        button.image = image
+        button.imagePosition = .imageOnly
+        button.title = ""
         button.wantsLayer = true
         button.layer?.backgroundColor = NSColor.clear.cgColor
-        button.layer?.borderColor = color.cgColor
-        button.layer?.borderWidth = 1
-        button.layer?.cornerRadius = 4
+        button.layer?.borderWidth = 0
+        button.layer?.cornerRadius = cornerRadius
         button.layer?.masksToBounds = true
-        // Force redraw and size update
-        button.sizeToFit()
-        let width = button.attributedTitle.size().width + 16 // 8pt padding each side
-        let height = button.attributedTitle.size().height + 4 // 2pt padding top/bottom
-        button.setFrameSize(NSSize(width: width, height: height))
-        // Add click handler to show menu
+        button.setFrameSize(buttonSize)
+        // Manual menu handling
         button.target = self
         button.action = #selector(showMenu(_:))
     }
@@ -80,13 +129,19 @@ class StatusBarController: NSObject, NSMenuDelegate {
     
     @objc func showMenu(_ sender: Any?) {
         guard let button = statusItem?.button, let menu = menu else { return }
-        let event = NSApp.currentEvent
+        isActive = true
+        updateButton()
         let point = NSPoint(x: 0, y: button.bounds.height + 4)
         menu.popUp(positioning: nil, at: point, in: button)
     }
     
     func menuWillOpen(_ menu: NSMenu) {
-        statusItem?.button?.highlight(false)
+        isActive = true
+        updateButton()
+    }
+    func menuDidClose(_ menu: NSMenu) {
+        isActive = false
+        updateButton()
     }
 }
 
