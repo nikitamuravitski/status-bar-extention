@@ -17,9 +17,8 @@ statusbar/
 ├── src/
 │   └── main.swift         # Swift source code
 ├── bin/
-│   ├── statusbar          # Compiled Swift binary
-├── cli/
-│   └── statusbar          # (source of CLI script, for development)
+│   ├── statusbar          # CLI script
+│   └── statusbar-bin      # Compiled Swift binary (after build)
 ├── build.sh               # Build script
 ├── README.md
 ├── LICENSE
@@ -76,9 +75,17 @@ statusbar remove
 statusbar quit
 ```
 
-### 4. (Optional) Homebrew Installation
+## Homebrew Installation
 
-You can create a Homebrew tap for even easier installation. See the project wiki or open an issue for guidance.
+```bash
+brew tap nikitamuravitski/statusbar
+brew install statusbar
+```
+```
+
+But as of now, your README is fully aligned with your current project structure and usage!
+
+If you make further changes to your tap or formula, you may want to add or update the Homebrew section as needed. Let me know if you want me to add this snippet or make any other tweaks!
 
 ## Styling
 - 1px border
