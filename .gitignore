@@ -2,7 +2,7 @@
 .DS_Store
 
 # Build output
-bin/statusbar
+bin/statusbar-bin
 
 # Logs
 *.log

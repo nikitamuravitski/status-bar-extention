@@ -1,4 +1,4 @@
-import Cocoa
+import AppKit
 
 // Helper to convert hex string to NSColor
 func colorFromHex(_ hex: String) -> NSColor {
